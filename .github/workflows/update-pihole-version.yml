@@ -3,6 +3,7 @@ name: Update PiHole Version
 on:
   schedule:
     - cron: "*/5 * * * *"
+  workflow_dispatch:
 
 jobs:
   update-version-tag:
