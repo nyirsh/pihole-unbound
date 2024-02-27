@@ -9,34 +9,37 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Read current version from file
-      id: read-version
-      run: echo "{version}=$(cat VERSION || echo "")" >> $GITHUB_OUTPUT
+      - name: Read current version from file
+        id: read-version
+        uses: juliangruber/read-file-action@v1
+        with:
+          path: ./VERSION
 
-    - name: Get latest tag name
-      id: get-latest-tag
-      run: |
-        latestTag=$(curl -s https://api.github.com/repos/pi-hole/docker-pi-hole/tags | jq -r '.[0].name')
-        echo "{latest_tag}={$latestTag}" >> $GITHUB_OUTPUT
+      - name: Get latest pihole tag
+        id: get-latest-tag
+        uses: oprypin/find-latest-tag@v1
+        with:
+          repository: pi-hole/docker-pi-hole
+          releases-only: true
 
-    - name: Compare tags
-      id: compare-tags
-      run: |
-        if [ "${{ steps.read-version.outputs.version }}" != "${{ steps.get-latest-tag.outputs.latest_tag }}" ]; then
-          echo "Tag has changed. Updating VERSION file."
-          echo "${{ steps.get-latest-tag.outputs.latest_tag }}" > VERSION
-        else
-          echo "Tag has not changed. Skipping update."
-        fi
+      - name: Compare tags
+        id: compare-tags
+        run: |
+          if [ "${{ steps.read-version.outputs.content }}" != "${{ steps.get-latest-tag.outputs.tag }}" ]; then
+            echo "Tag has changed. Updating VERSION file."
+            echo "${{ steps.get-latest-tag.outputs.tag }}" > VERSION
+          else
+            echo "Tag has not changed. Skipping update."
+          fi
 
-    - name: Commit and push changes
-      if: steps.compare-tags.outputs.status == 'success'
-      run: |
-        git config --global user.email "actions@github.com"
-        git config --global user.name "GitHub Actions"
-        git add VERSION
-        git commit -m "Update VERSION with latest tag"
-        git push
+      - name: Commit and push changes
+        if: steps.compare-tags.outputs.status == 'success'
+        run: |
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+          git add VERSION
+          git commit -m "Update VERSION with latest tag"
+          git push
