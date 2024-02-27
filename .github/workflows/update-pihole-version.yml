@@ -1,4 +1,4 @@
-name: Update PiHole Version
+name: Auto-Update PiHole Version
 
 on:
   schedule:

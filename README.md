@@ -1,4 +1,5 @@
 # Pi-Hole + Unbound on Docker
+[![Auto-Update PiHole Version](https://github.com/nyirsh/pihole-unbound/actions/workflows/update-pihole-version.yml/badge.svg)](https://github.com/nyirsh/pihole-unbound/actions/workflows/update-pihole-version.yml)
 
 ### Use Docker to run [Pi-Hole](https://pi-hole.net) with an upstream [Unbound](https://nlnetlabs.nl/projects/unbound/about/) resolver.
 This Docker deployment runs both Pi-Hole and Unbound in a single container.
