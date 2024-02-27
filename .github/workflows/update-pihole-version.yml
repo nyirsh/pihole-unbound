@@ -53,8 +53,15 @@ jobs:
     needs: update-version-tag
     runs-on: ubuntu-latest
     if: ${{ needs.update-version-tag.outputs.should_build_image }}
+    permissions:
+      contents: read
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT }}
+
       - name: Read current repository version
         id: read-version
         uses: juliangruber/read-file-action@v1
