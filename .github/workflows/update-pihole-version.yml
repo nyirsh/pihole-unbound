@@ -1,0 +1,42 @@
+name: Update PiHole Version
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Run the workflow every day at midnight UTC
+
+jobs:
+  update-version-tag:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Read current version from file
+      id: read-version
+      run: echo ::set-output name=version::$(cat VERSION || echo "")
+
+    - name: Get latest tag name
+      id: get-latest-tag
+      run: |
+        latestTag=$(curl -s https://api.github.com/repos/pi-hole/docker-pi-hole/tags | jq -r '.[0].name')
+        echo "::set-output name=latest_tag::$latestTag"
+
+    - name: Compare tags
+      id: compare-tags
+      run: |
+        if [ "${{ steps.read-version.outputs.version }}" != "${{ steps.get-latest-tag.outputs.latest_tag }}" ]; then
+          echo "Tag has changed. Updating VERSION file."
+          echo "${{ steps.get-latest-tag.outputs.latest_tag }}" > VERSION
+        else
+          echo "Tag has not changed. Skipping update."
+        fi
+
+    - name: Commit and push changes
+      if: steps.compare-tags.outputs.status == 'success'
+      run: |
+        git config --global user.email "actions@github.com"
+        git config --global user.name "GitHub Actions"
+        git add VERSION
+        git commit -m "Update VERSION with latest tag"
+        git push
