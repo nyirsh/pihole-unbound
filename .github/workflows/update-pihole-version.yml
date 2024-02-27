@@ -10,7 +10,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
     - name: Read current version from file
       id: read-version
@@ -20,7 +20,7 @@ jobs:
       id: get-latest-tag
       run: |
         latestTag=$(curl -s https://api.github.com/repos/pi-hole/docker-pi-hole/tags | jq -r '.[0].name')
-        echo "::set-output name=latest_tag::$latestTag"
+        echo "{latest_tag}={$latestTag}" >> $GITHUB_OUTPUT
 
     - name: Compare tags
       id: compare-tags
