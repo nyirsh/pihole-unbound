@@ -8,11 +8,16 @@ jobs:
   update-version-tag:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT }}
 
-      - name: Read current version from file
+      - name: Read current repository version
         id: read-version
         uses: juliangruber/read-file-action@v1
         with:
@@ -26,20 +31,15 @@ jobs:
           releases-only: true
 
       - name: Compare tags
-        id: compare-tags
-        run: |
-          if [ "${{ steps.read-version.outputs.content }}" != "${{ steps.get-latest-tag.outputs.tag }}" ]; then
-            echo "Tag has changed. Updating VERSION file."
-            echo "${{ steps.get-latest-tag.outputs.tag }}" > VERSION
-          else
-            echo "Tag has not changed. Skipping update."
-          fi
+        if: steps.read-version.outputs.content != steps.get-latest-tag.outputs.tag
+        uses: DamianReeves/write-file-action@master
+        with:
+          path: ./VERSION
+          write-mode: overwrite
+          contents: ${{ steps.get-latest-tag.outputs.tag }}
 
-      - name: Commit and push changes
-        if: steps.compare-tags.outputs.status == 'success'
-        run: |
-          git config --global user.email "actions@github.com"
-          git config --global user.name "GitHub Actions"
-          git add VERSION
-          git commit -m "Update VERSION with latest tag"
-          git push
+      - name: Commit & Push
+        if: steps.read-version.outputs.content != steps.get-latest-tag.outputs.tag
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: ${{ steps.get-latest-tag.outputs.tag }}
