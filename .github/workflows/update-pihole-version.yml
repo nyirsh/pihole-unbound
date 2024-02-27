@@ -39,11 +39,7 @@ jobs:
           write-mode: overwrite
           contents: ${{ steps.get-latest-tag.outputs.tag }}
 
-      - name: Commit & Push
-        if: steps.read-version.outputs.content != steps.get-latest-tag.outputs.tag
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: ${{ steps.get-latest-tag.outputs.tag }}
+      
 
       - name: Set up QEMU
         if: steps.read-version.outputs.content != steps.get-latest-tag.outputs.tag
@@ -73,6 +69,12 @@ jobs:
             nyirsh/pihole-unbound:latest  
             nyirsh/pihole-unbound:${{ steps.read-version.outputs.content }}
 
+      - name: Commit & Push
+        if: steps.read-version.outputs.content != steps.get-latest-tag.outputs.tag
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: ${{ steps.get-latest-tag.outputs.tag }}
+          
       - name: Create Release
         if: steps.read-version.outputs.content != steps.get-latest-tag.outputs.tag
         uses: softprops/action-gh-release@v1
