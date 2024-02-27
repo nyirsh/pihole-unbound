@@ -12,6 +12,9 @@ jobs:
     permissions:
       contents: write
 
+    outputs:
+      should_build_image: ${{ steps.read-version.outputs.content != steps.get-latest-tag.outputs.tag }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -44,3 +47,54 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: ${{ steps.get-latest-tag.outputs.tag }}
+
+  build-image:
+    name: Build and Push Docker Image
+    needs: update-version-tag
+    runs-on: ubuntu-latest
+    if: ${{ needs.update-version-tag.outputs.should_build_image }}
+
+    steps:
+      - name: Read current repository version
+        id: read-version
+        uses: juliangruber/read-file-action@v1
+        with:
+          path: ./VERSION
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+            
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      
+      - name: Docker build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          build-args: PIHOLE_VERSION=${{ steps.read-version.outputs.content }}
+          platforms: linux/arm/v7,linux/arm64/v8,linux/amd64
+          tags: |
+            nyirsh/pihole-unbound:latest  
+            nyirsh/pihole-unbound:${{ steps.read-version.outputs.content }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ""
+          name: ${{ steps.read-version.outputs.content }}
+          tag_name: ${{ steps.read-version.outputs.content }}
+          draft: false
+          prerelease: false
+          body: |
+            Updated PiHole image to ${{ steps.read-version.outputs.content }}, for a full list of changelogs please refer to [this link](https://github.com/pi-hole/docker-pi-hole/releases/tag/${{ steps.read-version.outputs.content }})
+          token: ${{ secrets.PAT }}
