@@ -1,12 +1,18 @@
-# Pi-Hole + Unbound on Docker
+# Pi-Hole + Unbound on Docker 
+![GitHub Tag](https://img.shields.io/github/v/tag/nyirsh/pihole-unbound?label=Repository%20Version&link=https%3A%2F%2Fgithub.com%2Fnyirshy%2Fpihole-unbound%2F)
+![GitHub Tag](https://img.shields.io/github/v/tag/pi-hole/docker-pi-hole?logo=pi-hole&label=Pi-Hole%20Version&link=https%3A%2F%2Fgithub.com%2Fpi-hole%2Fdocker-pi-hole%2F)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/nyirsh/pihole-unbound/update-pihole-version.yml?logo=GitHub&label=Auto%20Update&link=https%3A%2F%2Fgithub.com%2Fnyirsh%2Fpihole-unbound%2Factions%2Fworkflows%2Fupdate-pihole-version.yml)
+
+
 ![Pi-Hole Unbound](https://github.com/nyirsh/pihole-unbound/blob/main/resources/pihole-unbound.png?raw=true "Pi-Hole Unbound")
+
 
 ### Use Docker to run [Pi-Hole](https://pi-hole.net) with an upstream [Unbound](https://nlnetlabs.nl/projects/unbound/about/) resolver.
 This Docker deployment runs both Pi-Hole and Unbound in a single container.
 
 The base image for the container is the [official Pi-Hole container](https://hub.docker.com/r/pihole/pihole), with an extra build step added to install the Unbound resolver directly into to it based on [instructions provided directly by the Pi-Hole team](https://docs.pi-hole.net/guides/unbound/).
 
-[![Auto-Update Pi-Hole](https://github.com/nyirsh/pihole-unbound/actions/workflows/update-pihole-version.yml/badge.svg)](https://github.com/nyirsh/pihole-unbound/actions/workflows/update-pihole-version.yml)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/nyirsh/pihole-unbound/update-pihole-version.yml?logo=GitHub&label=Auto%20Update&link=https%3A%2F%2Fgithub.com%2Fnyirsh%2Fpihole-unbound%2Factions%2Fworkflows%2Fupdate-pihole-version.yml)
 
 The [Github repository](https://github.com/nyirsh/pihole-unbound/) is set to automatically check for a new PiHole version every day by monitoring the [official Pi-Hole docker repository](https://github.com/pi-hole/docker-pi-hole/). If a new release is detected, a new image is automatically generated and pushed to [dockerhub repository](https://hub.docker.com/repository/docker/nyirsh/pihole-unbound/).
 
