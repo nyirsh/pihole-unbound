@@ -108,7 +108,7 @@ WEBTHEME=default-dark
 docker-compose up -d
 ```
 
-> If using Portainer, just paste the `docker-compose.yaml` contents into the stack config and add your *environment variables* directly in the UI.
+> If using Portainer, just paste the `docker-compose.yml` contents into the stack config and add your *environment variables* directly in the UI.
 
 ## FAQ
 ***- Q: I also want to use Cloudflare or change some other parameters of Pi-Hole!***
