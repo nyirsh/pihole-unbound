@@ -7,7 +7,8 @@ This Docker deployment runs both Pi-Hole and Unbound in a single container.
 The base image for the container is the [official Pi-Hole container](https://hub.docker.com/r/pihole/pihole), with an extra build step added to install the Unbound resolver directly into to it based on [instructions provided directly by the Pi-Hole team](https://docs.pi-hole.net/guides/unbound/).
 
 [![Auto-Update Pi-Hole](https://github.com/nyirsh/pihole-unbound/actions/workflows/update-pihole-version.yml/badge.svg)](https://github.com/nyirsh/pihole-unbound/actions/workflows/update-pihole-version.yml)
-This repository automatically checks for a new PiHole version every day by monitoring the [official Pi-Hole docker repository](https://github.com/pi-hole/docker-pi-hole/) and comparing its latest tag against the content of the file `VERSION`. If a new release is detected, a new image is automatically generated and pushed to the repository.
+
+This repository automatically checks for a new PiHole version every day by monitoring the [official Pi-Hole docker repository](https://github.com/pi-hole/docker-pi-hole/) and comparing its latest tag against the content of the file `VERSION`. If a new release is detected, a new image is automatically generated and pushed to [dockerhub repository](https://hub.docker.com/repository/docker/nyirsh/pihole-unbound/).
 
 This configuration contacts the DNS root servers directly, please read the Pi-Hole docs on [Pi-hole as All-Around DNS Solution](https://docs.pi-hole.net/guides/unbound/) to understand what this means.
 
