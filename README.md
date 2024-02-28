@@ -111,9 +111,11 @@ docker-compose up -d
 
 ## FAQ
 - ***Q: I also want to use Cloudflare or change some other parameters of Pi-Hole!***
+
 A: Please keep in mind that the `docker-compose.yml` and `.env` files provided in this repository are just an example! Please feel free to cumostomize the files so that they can match your expected experience, if you're unsure on how to do so I would highly recommend getting some knowledge on [Docker](https://docs.docker.com/) first.
 
 - ***Q: I am running Pi-Hole alongside other containers on the same machine but, despite setting the DNS to match the host machine IP, I still can't resolve any address!***
+
 Yep, it's a docker limitation of some sort, you can find more details [here](https://discourse.pi-hole.net/t/solve-dns-resolution-in-other-containers-when-using-docker-pihole/31413). To keep it short, change these two ports in your `docker-compose.yml` file:
 ```yml
 - "${FTLCONF_LOCAL_IPV4}:53:53/tcp"
@@ -121,6 +123,7 @@ Yep, it's a docker limitation of some sort, you can find more details [here](htt
 ```
 
 - ***Q: Thank you for this! Do you accept donations?***
+
 A: No I do not, I really did nothing special and everything here is fully automated so I don't think I deserve any kind of donation or recognition. If you're really willing to donate some money please consider giving them to the [Pi-Hole](https://pi-hole.net/donate) itself.
 
 ## Credits
