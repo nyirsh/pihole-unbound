@@ -8,14 +8,13 @@ services:
   pihole:
     container_name: pihole-unbound
     image: nyirsh/pihole-unbound:latest
-    hostname: ${HOSTNAME}
-    domainname: ${DOMAIN_NAME}
+    hostname: ${HOSTNAME:-pihole}
+    domainname: ${DOMAIN_NAME:-pihole.local}
     ports:
       - 53:53/tcp
       - 53:53/udp
-      - ${PIHOLE_WEBPORT:-80}:80/tcp
-      # - 5335:5335/tcp # Uncomment to enable unbound access on local server
-      # - 22/tcp # Uncomment to enable SSH
+      - ${PIHOLE_WEBPORT_HTTP:-80}:80/tcp
+      - ${PIHOLE_WEBPORT_HTTPS:-443}:80/tcp
     environment:
       - FTLCONF_LOCAL_IPV4=${FTLCONF_LOCAL_IPV4}
       - TZ=${TZ:-UTC}
