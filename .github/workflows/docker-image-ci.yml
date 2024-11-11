@@ -65,8 +65,8 @@ jobs:
         with:
           # List of Docker images to use as base name for tags
           images: |
-            docker.io/${{ github.repository_owner }}/docker-pihole-unbound
-            ghcr.io/${{ github.repository_owner }}/docker-pihole-unbound
+            docker.io/${{ github.repository_owner }}/pihole-unbound
+            ghcr.io/${{ github.repository_owner }}/pihole-unbound
           # Generate Docker tags based on the following events/attributes
           tags: |
             type=raw,value=${{ env.VERSION }}
