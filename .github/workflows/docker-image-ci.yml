@@ -36,7 +36,7 @@ jobs:
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v6.9.0
         with:
-          context: .
+          context: ./pihole-unbound
           file: ./Dockerfile
           push: true
           build-args: VERSION=${{ env.VERSION }}
