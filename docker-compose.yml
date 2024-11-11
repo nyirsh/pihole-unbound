@@ -1,20 +1,15 @@
-version: '3.0'
-
-volumes:
-  etc_pihole-unbound:
-  etc_pihole_dnsmasq-unbound:
-
 services:
   pihole:
-    container_name: pihole-unbound
     image: nyirsh/pihole-unbound:latest
+    container_name: pihole-unbound
     hostname: ${HOSTNAME:-pihole}
     domainname: ${DOMAIN_NAME:-pihole.local}
+    restart: unless-stopped
     ports:
-      - 53:53/tcp
-      - 53:53/udp
+      - ${FTLCONF_LOCAL_IPV4}:53:53/tcp
+      - ${FTLCONF_LOCAL_IPV4}:53:53/udp
       - ${PIHOLE_WEBPORT_HTTP:-80}:80/tcp
-      - ${PIHOLE_WEBPORT_HTTPS:-443}:80/tcp
+      - ${PIHOLE_WEBPORT_HTTPS:-443}:443/tcp
     environment:
       - FTLCONF_LOCAL_IPV4=${FTLCONF_LOCAL_IPV4}
       - TZ=${TZ:-UTC}
@@ -27,7 +22,11 @@ services:
       - PIHOLE_DNS_=127.0.0.1#5335
       - DNSSEC="true"
       - DNSMASQ_LISTENING=single
+      - CORS_HOSTS=${CORS_HOSTS:-}
     volumes:
-      - etc_pihole-unbound:/etc/pihole:rw
-      - etc_pihole_dnsmasq-unbound:/etc/dnsmasq.d:rw
-    restart: unless-stopped
+      - etc_pihole:/etc/pihole:rw
+      - etc_dnsmasq:/etc/dnsmasq.d:rw
+
+volumes:
+  etc_pihole:
+  etc_pihole_dnsmasq:
