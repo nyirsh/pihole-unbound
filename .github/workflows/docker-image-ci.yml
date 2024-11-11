@@ -41,7 +41,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
-          password: ${{ secrets.PAT }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and Push Docker Image
         id: build-and-push
@@ -76,4 +76,4 @@ jobs:
           prerelease: false
           body: |
             Updated PiHole image to ${{ env.VERSION }}, for a full list of changelogs please refer to [this link](https://github.com/pi-hole/docker-pi-hole/releases/tag/${{ env.VERSION }})
-          token: ${{ secrets.PAT }}
+          token: ${{ secrets.GITHUB_TOKEN }}
