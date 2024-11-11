@@ -1,5 +1,4 @@
-ARG PIHOLE_VERSION
-FROM pihole/pihole:${PIHOLE_VERSION:-latest}
+FROM pihole/pihole:2024.06.0
 
 RUN apt update && apt install -y unbound
 RUN apt install -y wget
