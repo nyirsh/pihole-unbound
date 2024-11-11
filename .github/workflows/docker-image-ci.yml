@@ -5,7 +5,8 @@ env:
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - main
     paths:
       - Dockerfile
   workflow_dispatch:
@@ -13,10 +14,19 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3.6.0
+        with:
+          cosign-release: "v2.2.4"
 
       - name: Extract Tag from Dockerfile
         id: read-version
@@ -67,13 +77,13 @@ jobs:
         run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2.0.8
         with:
-          files: ""
           name: ${{ env.VERSION }}
           tag_name: ${{ env.VERSION }}
           draft: false
           prerelease: false
+          make_latest: true
           body: |
             Updated PiHole image to ${{ env.VERSION }}, for a full list of changelogs please refer to [this link](https://github.com/pi-hole/docker-pi-hole/releases/tag/${{ env.VERSION }})
           token: ${{ secrets.GITHUB_TOKEN }}
