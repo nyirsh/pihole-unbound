@@ -17,12 +17,16 @@ jobs:
     permissions:
       contents: write
       packages: write
+      # This is used to complete the identity challenge
+      # with sigstore/fulcio when running outside of PRs.
       id-token: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Install the cosign tool
+      # https://github.com/sigstore/cosign-installer
       - name: Install cosign
         uses: sigstore/cosign-installer@v3.6.0
         with:
@@ -53,6 +57,26 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Extract metadata (tags, labels) for Docker
+      # https://github.com/docker/metadata-action
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5.5.1
+        with:
+          # List of Docker images to use as base name for tags
+          images: |
+            docker.io/${{ github.repository_owner }}/docker-pihole-unbound
+            ghcr.io/${{ github.repository_owner }}/docker-pihole-unbound
+          # Generate Docker tags based on the following events/attributes
+          tags: |
+            type=raw,value=${{ env.VERSION }}
+            type=raw,value=latest
+          # Set the OCI Image Specification source label to the base image repository, to enable tools
+          # like Renovate and Dependabot to automatically fetch release notes for new versions.
+          # We cannot use https://github.com/pi-hole/pi-hole directly, since it uses a different versioning scheme.
+          labels: |
+            org.opencontainers.image.source=https://github.com/pi-hole/docker-pi-hole
+
       - name: Build and Push Docker Image
         id: build-and-push
         uses: docker/build-push-action@v6.9.0
@@ -62,17 +86,14 @@ jobs:
           push: true
           build-args: VERSION=${{ env.VERSION }}
           platforms: linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64
-          tags: |
-            ${{ github.repository_owner }}/pihole-unbound:${{ env.VERSION }} 
-            ${{ github.repository_owner }}/pihole-unbound:latest
-            ghcr.io/${{ github.repository_owner }}/pihole-unbound:${{ env.VERSION }} 
-            ghcr.io/${{ github.repository_owner }}/pihole-unbound:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Sign the published Docker image
         env:
-          TAGS: "${{ env.VERSION }},latest"
+          TAGS: ${{ steps.meta.outputs.tags }}
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
         run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
 
