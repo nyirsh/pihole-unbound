@@ -32,11 +32,15 @@ jobs:
         with:
           cosign-release: "v2.2.4"
 
+      - name: Set Tag Suffix
+        if: github.ref == 'refs/heads/experimental'
+        run: echo "SUFFIX=-experimental" >> $GITHUB_ENV
+
       - name: Extract Tag from Dockerfile
         id: read-version
         run: |
           TAG=$(grep -m 1 '^FROM pihole/pihole:' Dockerfile | cut -d ':' -f 2)
-          echo "VERSION=${TAG}" >> $GITHUB_ENV
+          echo "VERSION=${TAG}${SUFFIX}" >> $GITHUB_ENV
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
