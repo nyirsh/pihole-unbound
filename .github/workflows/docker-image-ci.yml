@@ -74,7 +74,7 @@ jobs:
           # Generate Docker tags based on the following events/attributes
           tags: |
             type=raw,value=${{ env.VERSION }}
-            type=raw,value=latest
+            ${{ github.ref == 'refs/heads/main' && 'type=raw,value=latest' || '' }}
           # Set the OCI Image Specification source label to the base image repository, to enable tools
           # like Renovate and Dependabot to automatically fetch release notes for new versions.
           # We cannot use https://github.com/pi-hole/pi-hole directly, since it uses a different versioning scheme.
@@ -102,6 +102,7 @@ jobs:
         run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
 
       - name: Create Release
+        if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2.2.1
         with:
           name: ${{ env.VERSION }}
