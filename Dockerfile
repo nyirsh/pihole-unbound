@@ -1,4 +1,4 @@
-FROM pihole/pihole:2024.07.0
+FROM pihole/pihole:2025.02.1
 
 RUN apt update && apt install -y unbound
 RUN apt install -y wget
