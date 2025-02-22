@@ -3,26 +3,21 @@ services:
     image: nyirsh/pihole-unbound:latest
     container_name: pihole-unbound
     hostname: ${HOSTNAME:-pihole}
-    domainname: ${DOMAIN_NAME:-pihole.local}
+    domainname: ${DOMAINNAME:-pihole.local}
     restart: unless-stopped
     ports:
-      - ${FTLCONF_LOCAL_IPV4}:53:53/tcp
-      - ${FTLCONF_LOCAL_IPV4}:53:53/udp
+      - ${LOCAL_IPV4}:53:53/tcp
+      - ${LOCAL_IPV4}:53:53/udp
       - ${PIHOLE_WEBPORT_HTTP:-80}:80/tcp
       - ${PIHOLE_WEBPORT_HTTPS:-443}:443/tcp
     environment:
-      - FTLCONF_LOCAL_IPV4=${FTLCONF_LOCAL_IPV4}
       - TZ=${TZ:-UTC}
-      - WEBPASSWORD=${WEBPASSWORD}
-      - WEBTHEME=${WEBTHEME:-default-dark}
-      - REV_SERVER=${REV_SERVER:-false}
-      - REV_SERVER_TARGET=${REV_SERVER_TARGET}
-      - REV_SERVER_DOMAIN=${REV_SERVER_DOMAIN}
-      - REV_SERVER_CIDR=${REV_SERVER_CIDR}
-      - PIHOLE_DNS_=127.0.0.1#5335
-      - DNSSEC="true"
-      - DNSMASQ_LISTENING=single
-      - CORS_HOSTS=${CORS_HOSTS:-}
+      - FTLCONF_webserver_api_password=${WEBPASSWORD}
+      - FTLCONF_webserver_interface_theme=${WEBTHEME:-default-dark}
+      - FTLCONF_dns_revServers='${REV_SERVER:-false},${REV_SERVER_CIDR:-192.168.0.0/16},${REV_SERVER_TARGET:-192.168.1.1#53},${REV_SERVER_DOMAIN:-lan}'
+      - FTLCONF_dns_upstreams=127.0.0.1#5335
+      - FTLCONF_dns_dnssec=true
+      - FTLCONF_dns_listeningMode=single
     volumes:
       - etc_pihole:/etc/pihole:rw
       - etc_dnsmasq:/etc/dnsmasq.d:rw

@@ -1,15 +1,14 @@
-FROM pihole/pihole:2025.02.4
+FROM pihole/pihole:2025.02.0
 
-RUN apt update && apt install -y unbound
-RUN apt install -y wget
+RUN apk update
+RUN apk add --no-cache wget
+RUN mkdir -p /var/lib/unbound
 RUN wget https://www.internic.net/domain/named.root -qO- | tee /var/lib/unbound/root.hints
+RUN apk add --no-cache unbound
 
-COPY lighttpd-external.conf /etc/lighttpd/external.conf 
-COPY unbound-pihole.conf /etc/unbound/unbound.conf.d/pi-hole.conf
+COPY unbound-pihole.conf /etc/unbound/unbound.conf
 COPY 99-edns.conf /etc/dnsmasq.d/99-edns.conf
 
-RUN mkdir -p /etc/services.d/unbound
-COPY unbound-run /etc/services.d/unbound/run
-RUN chmod +x /etc/services.d/unbound/run
-
-ENTRYPOINT ./s6-init
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
