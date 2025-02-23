@@ -10,11 +10,11 @@
 
 This Docker deployment runs both Pi-Hole and Unbound in a single container.
 
-The base image for the container is the [official Pi-Hole container](https://hub.docker.com/r/pihole/pihole), with an extra build step added to install the Unbound resolver directly into to it based on [instructions provided directly by the Pi-Hole team](https://docs.pi-hole.net/guides/unbound/).
+The base image for the container is the [official Pi-Hole container](https://hub.docker.com/r/pihole/pihole), with an extra build step added to install the Unbound resolver directly into it based on [instructions provided directly by the Pi-Hole team](https://docs.pi-hole.net/guides/unbound/).
 
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/nyirsh/pihole-unbound/docker-image-ci.yml?logo=GitHub&label=Auto%20Update&link=https%3A%2F%2Fgithub.com%2Fnyirsh%2Fpihole-unbound%2Factions%2Fworkflows%2Fdocker-image-ci.yml)
 
-The [Github repository](https://github.com/nyirsh/pihole-unbound/) is set to automatically check for a new PiHole version every day by monitoring the [official Pi-Hole docker repository](https://github.com/pi-hole/docker-pi-hole/). If a new release is detected, a new image is automatically generated and pushed to [dockerhub repository](https://hub.docker.com/repository/docker/nyirsh/pihole-unbound/).
+The [Github repository](https://github.com/nyirsh/pihole-unbound/) is set to automatically check for a new PiHole version every day by monitoring the [official Pi-Hole docker repository](https://github.com/pi-hole/docker-pi-hole/). If a new release is detected, a new image is automatically generated and pushed to [dockerhub repository](https://hub.docker.com/repository/docker/nyirsh/pihole-unbound/) and [GitHub Container Registry](https://github.com/nyirsh/pihole-unbound/pkgs/container/pihole-unbound).
 
 This configuration contacts the DNS root servers directly, please read the Pi-Hole docs on [Pi-hole as All-Around DNS Solution](https://docs.pi-hole.net/guides/unbound/) to understand what this means.
 
@@ -92,7 +92,7 @@ docker-compose up -d
 
 **_- Q: I also want to use Cloudflare or change some other parameters of Pi-Hole!_**
 
-Please keep in mind that the `docker-compose.yml` and `.env` files provided in this repository are just an example! Feel free to cumostomize the files so that they can match your expected experience, if you're unsure on how to do so I would highly recommend getting some knowledge on [Docker](https://docs.docker.com/) first.
+Please keep in mind that the `docker-compose.yml` and `.env` files provided in this repository are just an example! Feel free to customize the files so that they can match your expected experience, if you're unsure on how to do so I would highly recommend getting some knowledge on [Docker](https://docs.docker.com/) first.
 
 **_- Q: I am running Pi-Hole alongside other containers on the same machine but, despite setting the DNS to match the host machine IP, I still can't resolve any address!_**
 
