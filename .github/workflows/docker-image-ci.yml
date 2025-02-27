@@ -9,6 +9,13 @@ on:
       - main
     paths:
       - Dockerfile
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+    paths:
+      - Dockerfile
   workflow_dispatch:
 
 jobs:
