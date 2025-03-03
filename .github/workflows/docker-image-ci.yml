@@ -90,7 +90,7 @@ jobs:
 
       - name: Build and Push Docker Image
         id: build-and-push
-        uses: docker/build-push-action@v6.14.0
+        uses: docker/build-push-action@v6.15.0
         with:
           context: ./pihole-unbound
           file: ./Dockerfile
