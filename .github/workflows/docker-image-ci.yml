@@ -17,6 +17,10 @@ on:
     paths:
       - Dockerfile
   workflow_dispatch:
+  workflow_run:
+    workflows: ["Dependabot auto-merge"]
+    types:
+      - completed
 
 jobs:
   build:
