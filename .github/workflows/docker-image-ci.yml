@@ -114,7 +114,7 @@ jobs:
 
       - name: Create Release
         if: github.ref == 'refs/heads/main'
-        uses: softprops/action-gh-release@v2.3.2
+        uses: softprops/action-gh-release@v2.3.3
         with:
           name: ${{ env.VERSION }}
           tag_name: ${{ env.VERSION }}
