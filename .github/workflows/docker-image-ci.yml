@@ -76,7 +76,7 @@ jobs:
       # https://github.com/docker/metadata-action
       - name: Docker metadata
         id: meta
-        uses: docker/metadata-action@v5.9.0
+        uses: docker/metadata-action@v5.10.0
         with:
           # List of Docker images to use as base name for tags
           images: |
