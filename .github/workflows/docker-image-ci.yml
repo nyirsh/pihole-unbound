@@ -9,18 +9,13 @@ on:
       - main
     paths:
       - Dockerfile
-  pull_request:
-    types:
-      - closed
-    branches:
-      - main
-    paths:
-      - Dockerfile
   workflow_dispatch:
   workflow_run:
     workflows: ["Dependabot auto-merge"]
     types:
       - completed
+    branches:
+      - main
 
 jobs:
   build:
@@ -104,7 +99,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=max,ignore-error=true
 
       - name: Sign the published Docker image
         env:
