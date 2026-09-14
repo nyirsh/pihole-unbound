@@ -13,16 +13,23 @@ echo "Starting Unbound..."
 unbound -d &
 UNBOUND_PID=$!
 
+READY=0
 for i in $(seq 1 30); do
     if ! kill -0 "$UNBOUND_PID" 2>/dev/null; then
         echo "Unbound exited during startup" >&2
         exit 1
     fi
     if nc -z 127.0.0.1 5335 2>/dev/null; then
+        READY=1
         break
     fi
     sleep 0.5
 done
+
+if [ "$READY" -ne 1 ]; then
+    echo "Unbound did not become ready within timeout" >&2
+    exit 1
+fi
 
 echo "Starting Pihole..."
 exec /usr/bin/start.sh
