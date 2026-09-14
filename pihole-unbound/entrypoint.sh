@@ -10,7 +10,6 @@ if [ ! -s /var/lib/unbound/root.hints ]; then
     wget -qO /var/lib/unbound/root.hints https://www.internic.net/domain/named.root 2>/dev/null || true
 fi
 
-# Check once again if root.hints exists, if not, something went wrong
 if [ ! -s /var/lib/unbound/root.hints ]; then
     echo "ERROR: /var/lib/unbound/root.hints is missing or empty after download attempt." >&2
     echo "This likely means the container has no network access to fetch the root hints file." >&2
@@ -23,7 +22,6 @@ if [ ! -s /var/lib/unbound/root.key ]; then
     unbound-anchor -a /var/lib/unbound/root.key || true
 fi
 
-# Check once again if root.key exists, if not, something went wrong
 if [ ! -s /var/lib/unbound/root.key ]; then
     echo "ERROR: /var/lib/unbound/root.key is missing or empty after initalization attempt." >&2
     echo "unbound-anchor could not initialize the DNSSEC root trust anchor (likely no network access)." >&2

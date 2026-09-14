@@ -16,8 +16,8 @@ services:
       - FTLCONF_webserver_interface_theme=${WEBTHEME:-default-dark}
       - FTLCONF_dns_revServers='${REV_SERVER:-false},${REV_SERVER_CIDR:-192.168.0.0/16},${REV_SERVER_TARGET:-192.168.1.1#53},${REV_SERVER_DOMAIN:-lan}'
       - FTLCONF_dns_upstreams=127.0.0.1#5335
-      - FTLCONF_dns_dnssec=true
       - FTLCONF_dns_listeningMode=single
+      - FTLCONF_dns_dnssec=false # set this to true if you set anything other than just unbound in `FTLCONF_dns_upstreams` (eg FTLCONF_dns_upstreams=127.0.0.1#5335;1.1.1.1)
     volumes:
       - etc_pihole:/etc/pihole:rw
       - unbound_data:/var/lib/unbound:rw
