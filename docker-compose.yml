@@ -20,8 +20,8 @@ services:
       - FTLCONF_dns_listeningMode=single
     volumes:
       - etc_pihole:/etc/pihole:rw
-      - etc_dnsmasq:/etc/dnsmasq.d:rw
+      - unbound_data:/var/lib/unbound:rw
 
 volumes:
   etc_pihole:
-  etc_pihole_dnsmasq:
+  unbound_data:
