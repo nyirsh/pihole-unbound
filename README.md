@@ -10,7 +10,7 @@
 
 This Docker deployment runs both Pi-Hole and Unbound in a single container.
 
-The base image for the container is the [official Pi-Hole container](https://hub.docker.com/r/pihole/pihole), with an extra build step added to install the Unbound resolver directly into it based on [instructions provided directly by the Pi-Hole team](https://docs.pi-hole.net/guides/unbound/).
+The base image for the container is the [official Pi-Hole container](https://hub.docker.com/r/pihole/pihole), with an extra build step added to install the Unbound resolver directly into it based on [instructions provided directly by the Pi-Hole team](https://docs.pi-hole.net/guides/unbound/) while also providing a combined healthcheck for both softwares.
 
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/nyirsh/pihole-unbound/docker-image-ci.yml?logo=GitHub&label=Auto%20Update&link=https%3A%2F%2Fgithub.com%2Fnyirsh%2Fpihole-unbound%2Factions%2Fworkflows%2Fdocker-image-ci.yml)
 
