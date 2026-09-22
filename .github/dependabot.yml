@@ -4,6 +4,8 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    cooldown:
+      default-days: 1
 
   - package-ecosystem: "github-actions"
     directory: ".github/workflows"

@@ -10,13 +10,22 @@
 
 This Docker deployment runs both Pi-Hole and Unbound in a single container.
 
-The base image for the container is the [official Pi-Hole container](https://hub.docker.com/r/pihole/pihole), with an extra build step added to install the Unbound resolver directly into it based on [instructions provided directly by the Pi-Hole team](https://docs.pi-hole.net/guides/unbound/).
+The base image for the container is the [official Pi-Hole container](https://hub.docker.com/r/pihole/pihole), with an extra build step added to install the Unbound resolver directly into it based on [instructions provided directly by the Pi-Hole team](https://docs.pi-hole.net/guides/unbound/) while also providing a combined healthcheck for both softwares.
 
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/nyirsh/pihole-unbound/docker-image-ci.yml?logo=GitHub&label=Auto%20Update&link=https%3A%2F%2Fgithub.com%2Fnyirsh%2Fpihole-unbound%2Factions%2Fworkflows%2Fdocker-image-ci.yml)
 
 The [Github repository](https://github.com/nyirsh/pihole-unbound/) is set to automatically check for a new PiHole version every day by monitoring the [official Pi-Hole docker repository](https://github.com/pi-hole/docker-pi-hole/). If a new release is detected, a new image is automatically generated and pushed to [dockerhub repository](https://hub.docker.com/repository/docker/nyirsh/pihole-unbound/) and [GitHub Container Registry](https://github.com/nyirsh/pihole-unbound/pkgs/container/pihole-unbound).
 
 This configuration contacts the DNS root servers directly, please read the Pi-Hole docs on [Pi-hole as All-Around DNS Solution](https://docs.pi-hole.net/guides/unbound/) to understand what this means.
+
+> [!CAUTION]
+>
+> <h3>Major changes in v2026.09.0</h3>
+>
+> Due to a conversation with @DKeppi, some changes have been implemented in order to optimize the project, while everything will keep working even without changes on your side, it is highly recommended that, from your `docker-compose.yml` you should remove the volume `etc_dnsmasq` completely and create a new one called `unbound_data`. You would only keep that volume if you created or need some advanced custom settings for dnsmasq.
+> At the same time, unless you also specifically added other DNS resolvers other than unbound in the environment variable `FTLCONF_dns_revServers` (which if you only downloaded the provided example you did not), it is highly recommended to change `FTLCONF_dns_dnssec` to `false`. This setting will not diminish your security at all since unbound is already taking care of it, and this would be a double check that could also potentially make some dns calls resolve negatively.
+>
+> If you're unsure on what you're doing or are simply lazy, just download and replace your `docker-compose.yml` with [this](docker-compose.yml).
 
 > [!CAUTION]
 >
