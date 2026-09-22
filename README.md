@@ -18,9 +18,9 @@ The [Github repository](https://github.com/nyirsh/pihole-unbound/) is set to aut
 
 This configuration contacts the DNS root servers directly, please read the Pi-Hole docs on [Pi-hole as All-Around DNS Solution](https://docs.pi-hole.net/guides/unbound/) to understand what this means.
 
-> [!CAUTION]
+> [!IMPORTANT]
 >
-> <h3>Major changes in v2026.09.0</h3>
+> <h3>Improvements added in 2026.09.0 - Please act!</h3>
 >
 > Due to a conversation with @DKeppi, some changes have been implemented in order to optimize the project, while everything will keep working even without changes on your side, it is highly recommended that, from your `docker-compose.yml` you should remove the volume `etc_dnsmasq` completely and create a new one called `unbound_data`. You would only keep that volume if you created or need some advanced custom settings for dnsmasq.
 > At the same time, unless you also specifically added other DNS resolvers other than unbound in the environment variable `FTLCONF_dns_revServers` (which if you only downloaded the provided example you did not), it is highly recommended to change `FTLCONF_dns_dnssec` to `false`. This setting will not diminish your security at all since unbound is already taking care of it, and this would be a double check that could also potentially make some dns calls resolve negatively.
@@ -127,3 +127,5 @@ I don't know, but maybe you can find more details [here](https://hub.docker.com/
 ## Credits
 
 Thanks to [Chris Crowe](https://github.com/chriscrowe) for figuring the original (pihole version <= 2024.x.x) installation method out and inspiring this project.
+
+Thanks to [DKeppi](https://github.com/DKeppi) for suggesting configuration and setup improvements.
