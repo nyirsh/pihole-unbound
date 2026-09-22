@@ -20,6 +20,15 @@ This configuration contacts the DNS root servers directly, please read the Pi-Ho
 
 > [!CAUTION]
 >
+> <h3>Major changes in v2026.09.0</h3>
+>
+> Due to a conversation with @DKeppi, some changes have been implemented in order to optimize the project, while everything will keep working even without changes on your side, it is highly recommended that, from your `docker-compose.yml` you should remove the volume `etc_dnsmasq` completely and create a new one called `unbound_data`. You would only keep that volume if you created or need some advanced custom settings for dnsmasq.
+> At the same time, unless you also specifically added other DNS resolvers other than unbound in the environment variable `FTLCONF_dns_revServers` (which if you only downloaded the provided example you did not), it is highly recommended to change `FTLCONF_dns_dnssec` to `false`. This setting will not diminish your security at all since unbound is already taking care of it, and this would be a double check that could also potentially make some dns calls resolve negatively.
+>
+> If you're unsure on what you're doing or are simply lazy, just download and replace your `docker-compose.yml` with [this](docker-compose.yml).
+
+> [!CAUTION]
+>
 > <h3>Updating from tag version <= 2024.x.x to >= 2025.x.x</h3>
 >
 > **Pi-hole v6 has been entirely redesigned from the ground up and contains many breaking changes.**
