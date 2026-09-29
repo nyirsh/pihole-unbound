@@ -8,7 +8,7 @@ RUN mkdir -p /usr/share/pihole-unbound && \
       https://www.internic.net/domain/named.root && \
     test -s /usr/share/pihole-unbound/root.hints
 
-RUN apk add --no-cache unbound
+RUN apk add --no-cache unbound=1.25.2-r2
 COPY unbound-pihole.conf /etc/unbound/unbound.conf
 
 COPY refresh-hints.sh /refresh-hints.sh

@@ -1,7 +1,10 @@
 name: Docker Image CI
 
 env:
-  VERSION:
+  PIHOLE_VERSION:
+  UNBOUND_VERSION:
+  SHORT_VERSION:
+  FULL_VERSION:
 
 on:
   push:
@@ -38,15 +41,39 @@ jobs:
         with:
           cosign-release: "v2.2.4"
 
-      - name: Set Tag Suffix
-        if: github.ref == 'refs/heads/experimental'
-        run: echo "SUFFIX=-experimental" >> $GITHUB_ENV
-
-      - name: Extract Tag from Dockerfile
-        id: read-version
+      # Reads the Pi-hole and Unbound versions pinned in the Dockerfile.
+      # The Unbound pin is kept up to date by the "Update Unbound version" workflow.
+      - name: Extract versions
+        shell: bash
         run: |
-          TAG=$(grep -m 1 '^FROM pihole/pihole:' Dockerfile | cut -d ':' -f 2)
-          echo "VERSION=${TAG}${SUFFIX}" >> $GITHUB_ENV
+          PIHOLE_VERSION=$(awk '/^FROM pihole\/pihole:/{split($2, a, ":"); print a[2]; exit}' Dockerfile)
+          if [ -z "$PIHOLE_VERSION" ]; then
+            echo "::error::No pihole/pihole base image found in Dockerfile"
+            exit 1
+          fi
+
+          # Full Alpine package version, e.g. 1.23.1-r0
+          UNBOUND_VERSION=$(grep -m1 -o 'unbound=[^[:space:]"]*' Dockerfile | cut -d= -f2)
+          if [ -z "$UNBOUND_VERSION" ]; then
+            echo "::error::No 'unbound=<version>' found in Dockerfile"
+            exit 1
+          fi
+
+          echo "Pi-hole: $PIHOLE_VERSION / Unbound: $UNBOUND_VERSION"
+
+          # Branches other than main get "-<branch>" appended to their tags.
+          # Characters not allowed in Docker tags (e.g. "/") become "-".
+          SUFFIX=""
+          if [ "$GITHUB_REF_NAME" != "main" ]; then
+            SUFFIX="-$(printf '%s' "$GITHUB_REF_NAME" | tr -c 'A-Za-z0-9_.-' '-')"
+          fi
+
+          {
+            echo "PIHOLE_VERSION=${PIHOLE_VERSION}"
+            echo "UNBOUND_VERSION=${UNBOUND_VERSION}"
+            echo "SHORT_VERSION=${PIHOLE_VERSION}${SUFFIX}"
+            echo "FULL_VERSION=${PIHOLE_VERSION}-${UNBOUND_VERSION}${SUFFIX}"
+          } >> "$GITHUB_ENV"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
@@ -79,13 +106,15 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/pihole-unbound
           # Generate Docker tags based on the following events/attributes
           tags: |
-            type=raw,value=${{ env.VERSION }}
-            ${{ github.ref == 'refs/heads/main' && 'type=raw,value=latest' || '' }}
+            type=raw,value=${{ env.SHORT_VERSION }}
+            type=raw,value=${{ env.FULL_VERSION }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
           # Set the OCI Image Specification source label to the base image repository, to enable tools
           # like Renovate and Dependabot to automatically fetch release notes for new versions.
           # We cannot use https://github.com/pi-hole/pi-hole directly, since it uses a different versioning scheme.
           labels: |
             org.opencontainers.image.source=https://github.com/pi-hole/docker-pi-hole
+            org.opencontainers.image.version=${{ env.FULL_VERSION }}
 
       - name: Build and Push Docker Image
         id: build-and-push
@@ -94,7 +123,6 @@ jobs:
           context: ./pihole-unbound
           file: ./Dockerfile
           push: true
-          build-args: VERSION=${{ env.VERSION }}
           platforms: linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -107,15 +135,80 @@ jobs:
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
         run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
 
-      - name: Create Release
+      # Compares this build with the latest release and writes notes that say what actually changed. Skips the release if this version was already released.
+      - name: Prepare release notes
+        id: notes
         if: github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          if gh release view "$FULL_VERSION" >/dev/null 2>&1; then
+            echo "::notice::Release $FULL_VERSION already exists, skipping release"
+            echo "create=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Latest release tag, e.g. 2026.08.0-1.23.0-r0 (older releases may be just 2026.08.0)
+          PREV_TAG=$(gh release view --json tagName -q .tagName 2>/dev/null || true)
+          PREV_PIHOLE="${PREV_TAG%%-*}"
+          PREV_UNBOUND=""
+          [ "$PREV_TAG" != "$PREV_PIHOLE" ] && PREV_UNBOUND="${PREV_TAG#*-}"
+
+          PIHOLE_NOTES="https://github.com/pi-hole/docker-pi-hole/releases/tag/${PIHOLE_VERSION}"
+          UNBOUND_UPSTREAM="${UNBOUND_VERSION%-r*}"   # 1.23.1-r0 -> 1.23.1
+          UNBOUND_NOTES="https://github.com/NLnetLabs/unbound/releases/tag/release-${UNBOUND_UPSTREAM}"
+
+          # Pi-hole line
+          if [ -z "$PREV_PIHOLE" ]; then
+            PIHOLE_LINE="**Pi-hole** ${PIHOLE_VERSION} ([release notes](${PIHOLE_NOTES}))"
+          elif [ "$PREV_PIHOLE" != "$PIHOLE_VERSION" ]; then
+            PIHOLE_LINE="**Pi-hole** ${PREV_PIHOLE} → ${PIHOLE_VERSION} ([release notes](${PIHOLE_NOTES}))"
+          else
+            PIHOLE_LINE="**Pi-hole** ${PIHOLE_VERSION} (unchanged)"
+          fi
+
+          # Unbound line
+          if [ -z "$PREV_UNBOUND" ]; then
+            UNBOUND_LINE="**Unbound** ${UNBOUND_VERSION} ([release notes](${UNBOUND_NOTES}))"
+          elif [ "$PREV_UNBOUND" = "$UNBOUND_VERSION" ]; then
+            UNBOUND_LINE="**Unbound** ${UNBOUND_VERSION} (unchanged)"
+          elif [ "${PREV_UNBOUND%-r*}" = "$UNBOUND_UPSTREAM" ]; then
+            UNBOUND_LINE="**Unbound** ${PREV_UNBOUND} → ${UNBOUND_VERSION} (Alpine package rebuild, no upstream changes)"
+          else
+            UNBOUND_LINE="**Unbound** ${PREV_UNBOUND} → ${UNBOUND_VERSION} ([release notes](${UNBOUND_NOTES}))"
+          fi
+
+          NOTES="$RUNNER_TEMP/release-notes.md"
+          {
+            echo "## What's changed"
+            echo
+            echo "- ${PIHOLE_LINE}"
+            echo "- ${UNBOUND_LINE}"
+            echo
+            echo "## Image"
+            echo
+            echo '```sh'
+            echo "docker pull ${OWNER}/pihole-unbound:${FULL_VERSION}"
+            echo "docker pull ghcr.io/${OWNER}/pihole-unbound:${FULL_VERSION}"
+            echo '```'
+          } > "$NOTES"
+
+          cat "$NOTES"
+          echo "create=true" >> "$GITHUB_OUTPUT"
+          echo "path=$NOTES" >> "$GITHUB_OUTPUT"
+
+      - name: Create Release
+        if: github.ref == 'refs/heads/main' && steps.notes.outputs.create == 'true'
         uses: softprops/action-gh-release@v3.0.3
         with:
-          name: ${{ env.VERSION }}
-          tag_name: ${{ env.VERSION }}
+          name: ${{ env.FULL_VERSION }}
+          tag_name: ${{ env.FULL_VERSION }}
           draft: false
           prerelease: false
           make_latest: true
-          body: |
-            Updated PiHole image to ${{ env.VERSION }}, for a full list of changelogs please refer to [this link](https://github.com/pi-hole/docker-pi-hole/releases/tag/${{ env.VERSION }})
+          body_path: ${{ steps.notes.outputs.path }}
+          # Appends GitHub's list of commits/PRs since the previous release
+          generate_release_notes: true
           token: ${{ secrets.GITHUB_TOKEN }}

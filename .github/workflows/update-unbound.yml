@@ -1,0 +1,56 @@
+name: Update Unbound version
+
+on:
+    schedule:
+        - cron: "0 3 * * *"
+    workflow_dispatch:
+
+jobs:
+    update:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write # commit the Dockerfile change
+            actions: write # trigger the image build
+        steps:
+            - uses: actions/checkout@v7
+
+            - name: Look up available Unbound version
+              id: check
+              shell: bash
+              run: |
+                  BASE=$(awk '/^FROM pihole\/pihole:/{print $2; exit}' Dockerfile)
+                  [ -n "$BASE" ] || { echo "::error::No pihole/pihole base image found in Dockerfile"; exit 1; }
+
+                  AVAILABLE=$(docker run --rm --entrypoint sh "$BASE" \
+                    -c 'apk update >/dev/null && apk search -x unbound' \
+                    | sed -n 's/^unbound-//p' | head -1)
+                  [ -n "$AVAILABLE" ] || { echo "::error::Could not determine the available Unbound version"; exit 1; }
+
+                  CURRENT=$(grep -m1 -o 'unbound=[^[:space:]"]*' Dockerfile | cut -d= -f2)
+                  [ -n "$CURRENT" ] || { echo "::error::No 'unbound=<version>' found in Dockerfile"; exit 1; }
+
+                  echo "Base: $BASE"
+                  echo "Pinned: $CURRENT / Available: $AVAILABLE"
+
+                  if [ "$CURRENT" != "$AVAILABLE" ]; then
+                    sed -i -E "s/(unbound=)[^[:space:]\"]+/\1${AVAILABLE}/" Dockerfile
+                    echo "::notice::Unbound ${CURRENT} -> ${AVAILABLE}"
+                    echo "updated=true" >> "$GITHUB_OUTPUT"
+                    echo "version=${AVAILABLE}" >> "$GITHUB_OUTPUT"
+                  fi
+
+            - name: Commit and push
+              if: steps.check.outputs.updated == 'true'
+              run: |
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  git add Dockerfile
+                  git commit -m "Update Unbound to ${{ steps.check.outputs.version }}"
+                  git push
+
+            # Pushes made with GITHUB_TOKEN don't trigger other workflows, so the image build has to be started explicitly.
+            - name: Trigger Docker Image CI
+              if: steps.check.outputs.updated == 'true'
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: gh workflow run docker-image-ci.yml --ref "${{ github.ref_name }}"
