@@ -2,12 +2,17 @@ FROM pihole/pihole:2026.09.0
 
 RUN apk update
 RUN apk add --no-cache wget
-RUN mkdir -p /var/lib/unbound && \
-    wget -O /var/lib/unbound/root.hints https://www.internic.net/domain/named.root && \
-    [ -s /var/lib/unbound/root.hints ]
+
+RUN mkdir -p /usr/share/pihole-unbound && \
+    wget -qO /usr/share/pihole-unbound/root.hints \
+      https://www.internic.net/domain/named.root && \
+    test -s /usr/share/pihole-unbound/root.hints
 
 RUN apk add --no-cache unbound
 COPY unbound-pihole.conf /etc/unbound/unbound.conf
+
+COPY refresh-hints.sh /refresh-hints.sh
+RUN chmod +x /refresh-hints.sh
 
 COPY healthcheck.sh /healthcheck.sh
 RUN chmod +x /healthcheck.sh

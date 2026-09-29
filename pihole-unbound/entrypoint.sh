@@ -1,18 +1,9 @@
 #!/bin/sh
 set -e
 
-# Seed persistent Unbound state if missing
-# This should be a fallback in case of empty binds / mounted volumes
-
 # root.hints
-if [ ! -s /var/lib/unbound/root.hints ]; then
-    echo "Downloading root.hints..."
-    wget -qO /var/lib/unbound/root.hints https://www.internic.net/domain/named.root 2>/dev/null || true
-fi
-
-if [ ! -s /var/lib/unbound/root.hints ]; then
-    echo "ERROR: /var/lib/unbound/root.hints is missing or empty after download attempt." >&2
-    echo "This likely means the container has no network access to fetch the root hints file." >&2
+if ! /refresh-hints.sh; then
+    echo "ERROR: /var/lib/unbound/root.hints is missing and could not be downloaded or restored from the bundled copy." >&2
     exit 1
 fi
 
@@ -53,6 +44,13 @@ if [ "$READY" -ne 1 ]; then
     echo "Unbound did not become ready within timeout" >&2
     exit 1
 fi
+
+# Check root.hints daily; the script only downloads when older than threshold
+(
+    while sleep 86400; do
+        /refresh-hints.sh || echo "WARNING: root.hints refresh failed" >&2
+    done
+) &
 
 echo "Starting Pihole..."
 exec /usr/bin/start.sh
