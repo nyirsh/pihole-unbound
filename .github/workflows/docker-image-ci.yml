@@ -182,17 +182,21 @@ jobs:
 
           NOTES="$RUNNER_TEMP/release-notes.md"
           {
-            echo "## What's changed"
+            echo "## Versions"
             echo
             echo "- ${PIHOLE_LINE}"
             echo "- ${UNBOUND_LINE}"
             echo
-            echo "## Image"
+            echo "## Images"
             echo
-            echo '```sh'
-            echo "docker pull ${OWNER}/pihole-unbound:${FULL_VERSION}"
-            echo "docker pull ghcr.io/${OWNER}/pihole-unbound:${FULL_VERSION}"
-            echo '```'
+            echo "Repos:"
+            echo "- ${OWNER}/pihole-unbound"
+            echo "- ghcr.io/${OWNER}/pihole-unbound"
+            echo 
+            echo "Tags:"
+            echo "- latest"
+            echo "- ${SHORT_VERSION}"
+            echo "- ${FULL_VERSION}"
           } > "$NOTES"
 
           cat "$NOTES"
