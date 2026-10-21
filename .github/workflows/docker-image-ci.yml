@@ -17,8 +17,6 @@ on:
     workflows: ["Dependabot auto-merge"]
     types:
       - completed
-    branches:
-      - main
 
 jobs:
   build:
