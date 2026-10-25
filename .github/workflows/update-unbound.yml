@@ -37,6 +37,16 @@ jobs:
                   echo "Base: $BASE"
                   echo "Pinned: $CURRENT / Available: $AVAILABLE"
 
+                  # Alpine package version comparison (including -rN revision).
+                  # Do not replace a pinned version with an older package.
+                  COMPARISON=$(docker run --rm --entrypoint sh "$BASE" \
+                    -c 'apk version -t "$1" "$2"' -- "$AVAILABLE" "$CURRENT")
+                  case "$COMPARISON" in
+                    '>') ;;
+                    '='|'<' ) echo "::notice::Skipping Unbound update: available version is not newer"; exit 0 ;;
+                    *) echo "::error::Unexpected apk version comparison: $COMPARISON"; exit 1 ;;
+                  esac
+
                   if [ "$CURRENT" != "$AVAILABLE" ]; then
                     sed -i -E "s/(unbound=)[^[:space:]\"]+/\1${AVAILABLE}/" Dockerfile
                     echo "::notice::Unbound ${CURRENT} -> ${AVAILABLE}"
