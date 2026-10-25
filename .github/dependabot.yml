@@ -6,6 +6,7 @@ updates:
       interval: "daily"
     cooldown:
       default-days: 1
+    target-branch: "main"
 
   - package-ecosystem: "github-actions"
     directory: ".github/workflows"
@@ -14,3 +15,4 @@ updates:
     commit-message:
       prefix: "actions"
     open-pull-requests-limit: 5
+    target-branch: "main"
