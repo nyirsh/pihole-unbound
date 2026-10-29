@@ -69,13 +69,21 @@ jobs:
 
       - name: Test DNS resolution
         run: |
-          docker exec pihole-unbound-test \
-            dig @127.0.0.1 -p 5335 example.com \
-            +time=5 +tries=2 +short
+          for PORT in 5335 53; do
+            echo "Testing DNS on port $PORT"
 
-          docker exec pihole-unbound-test \
-            dig @127.0.0.1 example.com \
-            +time=5 +tries=2 +short
+            RESULT=$(docker exec pihole-unbound-test \
+              dig @127.0.0.1 -p "$PORT" example.com A \
+              +time=5 +tries=2 +short)
+
+            echo "DNS result: $RESULT"
+
+            if ! echo "$RESULT" | grep -Eq \
+              '^[0-9]{1,3}(\.[0-9]{1,3}){3}$'; then
+              echo "::error::No IPv4 DNS answer on port $PORT"
+              exit 1
+            fi
+          done
 
       - name: Cleanup
         if: always()
