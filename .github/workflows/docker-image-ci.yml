@@ -7,6 +7,13 @@ env:
   FULL_VERSION:
 
 on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - Dockerfile
+      - pihole-unbound/**
+      - .github/workflows/docker-image-ci.yml
   push:
     branches:
       - main
@@ -97,6 +104,7 @@ jobs:
 
   build:
     needs: smoke-test
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: write
