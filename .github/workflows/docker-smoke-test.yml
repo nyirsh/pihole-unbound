@@ -1,0 +1,92 @@
+
+name: Docker Smoke Test
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - Dockerfile
+      - pihole-unbound/**
+      - .github/workflows/docker-smoke-test.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Validate Unbound configuration
+        run: |
+          docker build -t pihole-unbound:test \
+            -f Dockerfile ./pihole-unbound
+
+          docker run --rm \
+            --entrypoint sh \
+            pihole-unbound:test \
+            -c 'mkdir -p /var/lib/unbound && cp /usr/share/pihole-unbound/root.hints /var/lib/unbound/root.hints && unbound-checkconf'
+
+      - name: Start container
+        run: |
+          docker run -d \
+            --name pihole-unbound-test \
+            -e TZ=UTC \
+            -e FTLCONF_webserver_api_password=testpassword \
+            -e FTLCONF_dns_upstreams=127.0.0.1#5335 \
+            -e FTLCONF_dns_listeningMode=all \
+            pihole-unbound:test
+
+      - name: Wait for healthy container
+        run: |
+          for i in $(seq 1 60); do
+            STATUS=$(docker inspect \
+              --format '{{.State.Health.Status}}' \
+              pihole-unbound-test)
+
+            echo "Health status: $STATUS"
+
+            if [ "$STATUS" = "healthy" ]; then
+              exit 0
+            fi
+
+            if [ "$STATUS" = "unhealthy" ]; then
+              docker logs pihole-unbound-test
+              exit 1
+            fi
+
+            sleep 5
+          done
+
+          docker logs pihole-unbound-test
+          exit 1
+
+      - name: Test DNS resolution
+        run: |
+          for PORT in 5335 53; do
+            echo "Testing DNS on port $PORT"
+
+            RESULT=$(docker exec pihole-unbound-test \
+              dig @127.0.0.1 -p "$PORT" example.com A \
+              +time=5 +tries=2 +short)
+
+            echo "DNS result: $RESULT"
+
+            if ! echo "$RESULT" | grep -Eq \
+              '^[0-9]{1,3}(\.[0-9]{1,3}){3}$'; then
+              echo "::error::No IPv4 DNS answer on port $PORT"
+              exit 1
+            fi
+          done
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker logs pihole-unbound-test || true
+          docker rm -f pihole-unbound-test || true
