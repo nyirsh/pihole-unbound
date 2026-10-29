@@ -29,8 +29,9 @@ jobs:
             -f Dockerfile ./pihole-unbound
 
           docker run --rm \
-            --entrypoint unbound-checkconf \
-            pihole-unbound:test
+            --entrypoint sh \
+            pihole-unbound:test \
+            -c 'mkdir -p /var/lib/unbound && cp /usr/share/pihole-unbound/root.hints /var/lib/unbound/root.hints && unbound-checkconf'
 
       - name: Start container
         run: |
