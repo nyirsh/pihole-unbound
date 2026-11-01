@@ -2,8 +2,9 @@ version: 2
 updates:
   - package-ecosystem: "docker"
     directory: "/"
-    schedule:
-      interval: "daily"
+   schedule:
+      interval: "cron"
+      cronjob: "0 6 * * *"
     cooldown:
       default-days: 1
     target-branch: "main"
