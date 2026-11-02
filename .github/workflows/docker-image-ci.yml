@@ -14,15 +14,31 @@ on:
       - Dockerfile
       - pihole-unbound/**
       - .github/workflows/docker-image-ci.yml
+
+  pull_request_target:
+    types: [closed]
+    branches:
+      - main
+    paths:
+      - Dockerfile
+
   push:
     branches:
       - main
     paths:
       - Dockerfile
+
   workflow_dispatch:
 
 jobs:
   smoke-test:
+    if: >-
+      github.event_name != 'pull_request_target' ||
+      (
+        github.event.pull_request.merged == true &&
+        github.event.pull_request.user.login == 'dependabot[bot]' &&
+        github.event.pull_request.head.repo.full_name == github.repository
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -31,6 +47,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.merge_commit_sha || github.sha }}
+          persist-credentials: false
 
       - name: Build test image
         run: |
@@ -104,28 +123,35 @@ jobs:
 
   build:
     needs: smoke-test
-    if: github.event_name != 'pull_request'
+    if: >-
+      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event_name == 'pull_request_target' &&
+        github.event.pull_request.merged == true &&
+        github.event.pull_request.user.login == 'dependabot[bot]' &&
+        github.event.pull_request.head.repo.full_name == github.repository
+      )
     runs-on: ubuntu-latest
     permissions:
       contents: write
       packages: write
-      # This is used to complete the identity challenge
-      # with sigstore/fulcio when running outside of PRs.
       id-token: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.merge_commit_sha || github.sha }}
+          persist-credentials: false
 
       # Install the cosign tool
-      # https://github.com/sigstore/cosign-installer
       - name: Install cosign
         uses: sigstore/cosign-installer@v4.1.2
         with:
           cosign-release: "v2.2.4"
 
       # Reads the Pi-hole and Unbound versions pinned in the Dockerfile.
-      # The Unbound pin is kept up to date by the "Update Unbound version" workflow.
       - name: Extract versions
         shell: bash
         run: |
@@ -135,7 +161,6 @@ jobs:
             exit 1
           fi
 
-          # Full Alpine package version, e.g. 1.23.1-r0
           UNBOUND_VERSION=$(grep -m1 -o 'unbound=[^[:space:]"]*' Dockerfile | cut -d= -f2)
           if [ -z "$UNBOUND_VERSION" ]; then
             echo "::error::No 'unbound=<version>' found in Dockerfile"
@@ -144,8 +169,6 @@ jobs:
 
           echo "Pi-hole: $PIHOLE_VERSION / Unbound: $UNBOUND_VERSION"
 
-          # Branches other than main get "-<branch>" appended to their tags.
-          # Characters not allowed in Docker tags (e.g. "/") become "-".
           SUFFIX=""
           if [ "$GITHUB_REF_NAME" != "main" ]; then
             SUFFIX="-$(printf '%s' "$GITHUB_REF_NAME" | tr -c 'A-Za-z0-9_.-' '-')"
@@ -177,24 +200,17 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Extract metadata (tags, labels) for Docker
-      # https://github.com/docker/metadata-action
       - name: Docker metadata
         id: meta
         uses: docker/metadata-action@v6.2.0
         with:
-          # List of Docker images to use as base name for tags
           images: |
             docker.io/${{ github.repository_owner }}/pihole-unbound
             ghcr.io/${{ github.repository_owner }}/pihole-unbound
-          # Generate Docker tags based on the following events/attributes
           tags: |
             type=raw,value=${{ env.SHORT_VERSION }}
             type=raw,value=${{ env.FULL_VERSION }}
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-          # Set the OCI Image Specification source label to the base image repository, to enable tools
-          # like Renovate and Dependabot to automatically fetch release notes for new versions.
-          # We cannot use https://github.com/pi-hole/pi-hole directly, since it uses a different versioning scheme.
           labels: |
             org.opencontainers.image.source=https://github.com/pi-hole/docker-pi-hole
             org.opencontainers.image.version=${{ env.FULL_VERSION }}
@@ -218,7 +234,6 @@ jobs:
           DIGEST: ${{ steps.build-and-push.outputs.digest }}
         run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
 
-      # Compares this build with the latest release and writes notes that say what actually changed. Skips the release if this version was already released.
       - name: Prepare release notes
         id: notes
         if: github.ref == 'refs/heads/main'
@@ -233,17 +248,15 @@ jobs:
             exit 0
           fi
 
-          # Latest release tag, e.g. 2026.08.0-1.23.0-r0 (older releases may be just 2026.08.0)
           PREV_TAG=$(gh release view --json tagName -q .tagName 2>/dev/null || true)
           PREV_PIHOLE="${PREV_TAG%%-*}"
           PREV_UNBOUND=""
           [ "$PREV_TAG" != "$PREV_PIHOLE" ] && PREV_UNBOUND="${PREV_TAG#*-}"
 
           PIHOLE_NOTES="https://github.com/pi-hole/docker-pi-hole/releases/tag/${PIHOLE_VERSION}"
-          UNBOUND_UPSTREAM="${UNBOUND_VERSION%-r*}"   # 1.23.1-r0 -> 1.23.1
+          UNBOUND_UPSTREAM="${UNBOUND_VERSION%-r*}"
           UNBOUND_NOTES="https://github.com/NLnetLabs/unbound/releases/tag/release-${UNBOUND_UPSTREAM}"
 
-          # Pi-hole line
           if [ -z "$PREV_PIHOLE" ]; then
             PIHOLE_LINE="**Pi-hole** ${PIHOLE_VERSION} ([release notes](${PIHOLE_NOTES}))"
           elif [ "$PREV_PIHOLE" != "$PIHOLE_VERSION" ]; then
@@ -252,12 +265,9 @@ jobs:
             PIHOLE_LINE="**Pi-hole** ${PIHOLE_VERSION} (unchanged)"
           fi
 
-          # Unbound line
           if [ -z "$PREV_UNBOUND" ]; then
             UNBOUND_LINE="**Unbound** ${UNBOUND_VERSION} ([release notes](${UNBOUND_NOTES}))"
           elif [ "$PREV_UNBOUND" = "$UNBOUND_VERSION" ]; then
-            UNBOUND_LINE="**Unbound** ${UNBOUND_VERSION} (unchanged)"
-          elif [ "${PREV_UNBOUND%-r*}" = "$UNBOUND_UPSTREAM" ]; then
             UNBOUND_LINE="**Unbound** ${PREV_UNBOUND} → ${UNBOUND_VERSION} (Alpine package rebuild, no upstream changes)"
           else
             UNBOUND_LINE="**Unbound** ${PREV_UNBOUND} → ${UNBOUND_VERSION} ([release notes](${UNBOUND_NOTES}))"
@@ -275,7 +285,7 @@ jobs:
             echo "Repos:"
             echo "- ${OWNER}/pihole-unbound"
             echo "- ghcr.io/${OWNER}/pihole-unbound"
-            echo 
+            echo
             echo "Tags:"
             echo "- latest"
             echo "- ${SHORT_VERSION}"
@@ -296,6 +306,5 @@ jobs:
           prerelease: false
           make_latest: true
           body_path: ${{ steps.notes.outputs.path }}
-          # Appends GitHub's list of commits/PRs since the previous release
           generate_release_notes: true
           token: ${{ secrets.GITHUB_TOKEN }}
