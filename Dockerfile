@@ -1,4 +1,4 @@
-FROM pihole/pihole:2026.10.0
+FROM pihole/pihole:2026.10.1
 
 RUN apk update
 RUN apk add --no-cache wget
