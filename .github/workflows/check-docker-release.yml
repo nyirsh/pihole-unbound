@@ -1,0 +1,95 @@
+
+name: Check Docker Release
+
+on:
+  schedule:
+    - cron: "17,47 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: check-docker-release
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Check published release
+        id: release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PIHOLE=$(awk \
+            '/^FROM pihole\/pihole:/ {
+              split($2, a, ":");
+              print a[2];
+              exit
+            }' Dockerfile)
+
+          UNBOUND=$(grep -m1 -o \
+            'unbound=[^[:space:]"]*' Dockerfile |
+            cut -d= -f2)
+
+          if [ -z "$PIHOLE" ] || [ -z "$UNBOUND" ]; then
+            echo "::error::Could not determine versions"
+            exit 1
+          fi
+
+          VERSION="${PIHOLE}-${UNBOUND}"
+          echo "Expected release: $VERSION"
+
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "Release already exists"
+            echo "missing=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Release missing"
+            echo "missing=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check running Docker builds
+        if: steps.release.outputs.missing == 'true'
+        id: running
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ACTIVE=$(gh api \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/docker-image-ci.yml/runs?per_page=100" \
+            --jq '[.workflow_runs[] |
+              select(
+                .status == "queued" or
+                .status == "in_progress" or
+                .status == "waiting" or
+                .status == "pending" or
+                .status == "requested"
+              )] | length')
+
+          echo "Active Docker builds: $ACTIVE"
+
+          if [ "$ACTIVE" -eq 0 ]; then
+            echo "start=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "start=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Trigger Docker Image CI
+        if: >-
+          steps.release.outputs.missing == 'true' &&
+          steps.running.outputs.start == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run docker-image-ci.yml --ref main
