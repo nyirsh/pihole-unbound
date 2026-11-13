@@ -1,3 +1,4 @@
+
 name: Docker Image CI
 
 env:
@@ -15,13 +16,6 @@ on:
       - pihole-unbound/**
       - .github/workflows/docker-image-ci.yml
 
-  pull_request_target:
-    types: [closed]
-    branches:
-      - main
-    paths:
-      - Dockerfile
-
   push:
     branches:
       - main
@@ -32,15 +26,9 @@ on:
 
 jobs:
   smoke-test:
-    if: >-
-      github.event_name != 'pull_request_target' ||
-      (
-        github.event.pull_request.merged == true &&
-        github.event.pull_request.user.login == 'dependabot[bot]' &&
-        github.event.pull_request.head.repo.full_name == github.repository
-      )
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
     permissions:
       contents: read
 
@@ -48,7 +36,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
         with:
-          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.merge_commit_sha || github.sha }}
           persist-credentials: false
 
       - name: Build test image
@@ -123,16 +110,17 @@ jobs:
 
   build:
     needs: smoke-test
+
     if: >-
       github.event_name == 'push' ||
-      github.event_name == 'workflow_dispatch' ||
-      (
-        github.event_name == 'pull_request_target' &&
-        github.event.pull_request.merged == true &&
-        github.event.pull_request.user.login == 'dependabot[bot]' &&
-        github.event.pull_request.head.repo.full_name == github.repository
-      )
+      github.event_name == 'workflow_dispatch'
+
+    concurrency:
+      group: docker-publish-main
+      cancel-in-progress: false
+
     runs-on: ubuntu-latest
+
     permissions:
       contents: write
       packages: write
@@ -142,26 +130,25 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
         with:
-          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.merge_commit_sha || github.sha }}
           persist-credentials: false
 
-      # Install the cosign tool
       - name: Install cosign
         uses: sigstore/cosign-installer@v4.1.3
         with:
           cosign-release: "v2.2.4"
 
-      # Reads the Pi-hole and Unbound versions pinned in the Dockerfile.
       - name: Extract versions
         shell: bash
         run: |
           PIHOLE_VERSION=$(awk '/^FROM pihole\/pihole:/{split($2, a, ":"); print a[2]; exit}' Dockerfile)
+
           if [ -z "$PIHOLE_VERSION" ]; then
             echo "::error::No pihole/pihole base image found in Dockerfile"
             exit 1
           fi
 
           UNBOUND_VERSION=$(grep -m1 -o 'unbound=[^[:space:]"]*' Dockerfile | cut -d= -f2)
+
           if [ -z "$UNBOUND_VERSION" ]; then
             echo "::error::No 'unbound=<version>' found in Dockerfile"
             exit 1
@@ -274,6 +261,7 @@ jobs:
           fi
 
           NOTES="$RUNNER_TEMP/release-notes.md"
+
           {
             echo "## Versions"
             echo
@@ -293,6 +281,7 @@ jobs:
           } > "$NOTES"
 
           cat "$NOTES"
+
           echo "create=true" >> "$GITHUB_OUTPUT"
           echo "path=$NOTES" >> "$GITHUB_OUTPUT"
 
